@@ -1,19 +1,47 @@
 // JavaScript source code
 function Soldier(game) {
     this.radius = 10;
-    this.kills = 0;
     this.name = "Soldier";
     this.type = "Ally";
     this.color = "Green";
     this.cooldown = 0;
     this.direction = { x: randomInt(1600) - 800, y: randomInt(1600) - 800 };
-    Entity.call(this, game, this.radius + Math.random() * (800 - this.radius * 2), 700 - (this.radius + Math.random() * (50 - this.radius * 2)));
+    this.x = this.radius + Math.random() * (800 - this.radius * 2);
+    this.y = 700 - (this.radius + Math.random() * (50 - this.radius * 2));
+    Entity.call(this, game, this.x, this.y);
 
     this.velocity = { x: 0, y: 0 };
 };
 
 Soldier.prototype = new Entity();
 Soldier.prototype.constructor = Soldier;
+
+Soldier.prototype.saveState = function () {
+    var target;
+    if (this.action.target) {
+        target = this.action.target.saveState();
+    } else {
+        target = this.action.target;
+    }
+
+
+    var actionSave = { direction: { x: this.action.direction.x, y: this.action.direction.y }, target: target };
+
+    return {
+        name: this.name, x: this.x, y: this.y, cooldown: this.cooldown, direction: { x: this.direction.x, y: this.direction.y }, velocity: { x: this.velocity.x, y: this.velocity.y }, action: actionSave, removeFromWorld: this.removeFromWorld, alive: this.alive
+    };
+}
+
+Soldier.prototype.loadState = function (data) {
+    this.x = data.x;
+    this.y = data.y;
+    this.cooldown = data.cooldown;
+    this.direction = { x: data.direction.x, y: data.direction.y };
+    this.velocity = { x: data.velocity.x, y: data.velocity.y };
+    this.action = { direction: {x: data.action.direction.x, y: data.action.direction.y}, target: data.action.target};
+    this.removeFromWorld = data.removeFromWorld;
+    this.alive = data.alive;
+}
 
 Soldier.prototype.receiveOrder = function (order) {
     this.action = order;

@@ -1,16 +1,17 @@
 // JavaScript source code
 function Squad(game, X, Y) {
+    // this.game = game;
     this.radius = 25;
     this.centerX = this.x - 50;
     this.centerY = this.y - 50;
-    this.visualRadius = 500;
+    this.visualRadius = 1000;
     this.name = "Squad";
     this.type = "Ally";
     this.color = "White";
-    this.cooldown = 0;
-    this.direction = { x: randomInt(1600) - 800, y: randomInt(1600) - 800 };
     this.units = [];
     this.ready = false;
+    this.x = X;
+    this.y = Y;
     Entity.call(this, game, X, Y);
     // Entity.call(this, game, this.radius + Math.random() * (700 - this.radius * 2), 650 - (this.radius + Math.random() * (50 - this.radius * 2)));
     this.velocity = { x: 0, y: 0 };
@@ -19,15 +20,38 @@ function Squad(game, X, Y) {
 Squad.prototype = new Entity();
 Squad.prototype.constructor = Squad;
 
-Squad.prototype.selectAction = function () {
+Squad.prototype.saveState = function () {
+    var unitsCopy = [];
+    this.units.forEach(unit => {
+        var data = unit.saveState();
+        unitsCopy.push(data);
+    });
 
-    var action = { direction: { x: this.direction.x, y: this.direction.y }, target: null };
-    var closest = 1000;
-    var target = null;
-
-    
-    return action;
+    return {
+        name: this.name, x: this.x, y: this.y, centerX: this.centerX, centerY: this.centerY, ready: this.ready, velocity: { x: this.velocity.x, y: this.velocity.y }, units: unitsCopy, advance: this.advance
+    };
 };
+
+Squad.prototype.loadState = function (data) {
+    this.units = [];
+    
+    data.units.forEach(unit => {
+        var soldier = new Soldier(this.game);
+        soldier.loadState(unit);
+        soldier.removeFromWorld = true;
+        this.units.push(soldier);
+    });
+    
+    this.x = data.x;
+    this.y = data.y;
+    this.advance = data.advance;
+    this.centerX = data.centerX;
+    this.centerY = data.centerY;
+    this.ready = data.ready;
+    this.velocity = { x: data.velocity.x, y: data.velocity.y };
+
+
+}
 
 Squad.prototype.collide = function (other) {
     return distance(this, other) < this.radius + other.radius;
@@ -50,7 +74,7 @@ Squad.prototype.collideBottom = function () {
 };
 
 Squad.prototype.update = function () {
-    
+    debugger;
    
     if (!this.advance) {
         this.centerX = this.x - 50;
@@ -123,7 +147,7 @@ Squad.prototype.update = function () {
                 }
                 // var acceleration = 1000000;
                 var acceleration = 10000;
-                if (ent.name !== "Squad" && this.collide({ x: ent.x, y: ent.y, radius: this.visualRadius })) {
+                if (ent.name !== "Squad" && ent.name !== "Bullet" && ent.name !== "ArtilleryRound" && this.collide({ x: ent.x, y: ent.y, radius: this.visualRadius })) {
                     var dist = distance(this, ent);
                     if (dist > this.radius + ent.radius + 2) {
                         var difX = (ent.x - this.x) / dist;
@@ -258,7 +282,7 @@ Squad.prototype.inPosition = function (index) {
 
 
 Squad.prototype.draw = function (ctx) {
-    /*
+    /* Debugging code
     this.centerX = this.x - 50;
     this.centerY = this.y - 50;
     ctx.beginPath();

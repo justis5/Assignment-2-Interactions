@@ -36,6 +36,20 @@ function Bullet(game, range) {
 Bullet.prototype = new Entity();
 Bullet.prototype.constructor = Bullet;
 
+Bullet.prototype.saveState = function () {
+    return { name: this.name, x: this.x, y: this.y, velocity: { x: this.velocity.x, y: this.velocity.y }, effectiveRange: this.effectiveRange, distance: this.distance, removeFromWorld: this.removeFromWorld };
+
+}
+
+Bullet.prototype.loadState = function (data) {
+    this.x = data.x;
+    this.y = data.y;
+    this.velocity = { x: data.velocity.x, y: data.velocity.y };
+    this.effectiveRange = data.effectiveRange;
+    this.distance = data.distance;
+    this.removeFromWorld = data.removeFromWorld;
+}
+
 Bullet.prototype.collide = function (other) {
     return distance(this, other) < this.radius + other.radius;
 };
@@ -150,13 +164,32 @@ function Enemy(game) {
     this.color = "Red";
     this.cooldown = 0;
     this.direction = { x: randomInt(1600) - 800, y: randomInt(1600) - 800 };
-    Entity.call(this, game, this.radius + Math.random() * (800 - this.radius * 2), this.radius + Math.random() * (400 - this.radius * 2));
+    this.x = this.radius + Math.random() * (800 - this.radius * 2);
+    this.y = this.radius + Math.random() * (400 - this.radius * 2);
+    Entity.call(this, game, this.x, this.y);
 
     this.velocity = { x: 0, y: 0 };
 };
 
 Enemy.prototype = new Entity();
 Enemy.prototype.constructor = Enemy;
+
+Enemy.prototype.saveState = function () {
+
+    return {
+        name: "EnemySoldier", class: this.class, x: this.x, y: this.y, cooldown: this.cooldown, direction: { x: this.direction.x, y: this.direction.y }, velocity: { x: this.velocity.x, y: this.velocity.y }, removeFromWorld: this.removeFromWorld
+    };
+}
+
+Enemy.prototype.loadState = function (data) {
+    this.class = data.class;
+    this.cooldown = data.cooldown;
+    this.x = data.x;
+    this.y = data.y;
+    this.direction = { x: data.direction.x, y: data.direction.y };
+    this.velocity = { x: data.velocity.x, y: data.velocity.y };
+    this.removeFromWorld = data.removeFromWorld;
+}
 
 Enemy.prototype.selectTarget = function () {
     var closest = 1000;
@@ -243,7 +276,7 @@ Enemy.prototype.update = function () {
         if (ent !== this && this.collide(ent)) {
 
             if (ent.name === "ArtilleryRound") {
-                console.log("dead");
+                // console.log("dead");
                 this.removeFromWorld = true;
 
             } else if (ent.name === "Bullet") {
@@ -268,6 +301,7 @@ var friction = 1;
 var acceleration = 1000000;
 var maxSpeed = 100;
 
+var gameEngine;
 var ASSET_MANAGER = new AssetManager();
 
 ASSET_MANAGER.queueDownload("./img/960px-Blank_Go_board.png");
@@ -281,9 +315,10 @@ ASSET_MANAGER.downloadAll(function () {
     var ctx = canvas.getContext('2d');
 
 
-    var gameEngine = new GameEngine();
+    gameEngine = new GameEngine();
     var enemy;
-    gameEngine.addEntity(new Commander(gameEngine));
+    var allyCommander = new Commander(gameEngine);
+    gameEngine.addEntity(allyCommander);
 
     for (var i = 0; i < 20; i++) {
         enemy = new Enemy(gameEngine);
@@ -306,7 +341,7 @@ function artilleryStrike(game) {
     for (var j = 0; j < 5; j++) {
         shot = new ArtilleryRound(game, ASSET_MANAGER.getAsset("./img/explosion.png"));
         game.addEntity(shot);
-        debugger;
+
     }
 
 }

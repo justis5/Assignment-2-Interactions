@@ -1,4 +1,45 @@
 // This game shell was happily copied from Googler Seth Ladd's "Bad Aliens" game and his Google IO talk in 2011
+window.onload = function () {
+    var socket = io.connect("http://24.16.255.56:8888");
+
+    socket.on("load", function (prior) {
+        gameEngine.entities = [];
+        gameEngine = new GameEngine();
+        console.log(prior.data);
+        gameEngine.loadState(prior.data);
+        
+    });
+
+    var text = document.getElementById("text");
+    var saveButton = document.getElementById("save");
+    var loadButton = document.getElementById("load");
+
+    saveButton.onclick = function () {
+        console.log("save");
+        var data;
+        if (gameEngine) {
+            // debugger;
+            
+            data = { entities: gameEngine.saveState(), timer: gameEngine.timer.saveState(), clockTick: gameEngine.clockTick };
+            // var jsonData = JSON.stringify(data);
+
+        }
+        debugger;
+        text.innerHTML = "Saved."
+        if (data) {
+            socket.emit("save", { studentname: "Justin Sim", statename: "aState", data: data });
+        } else {
+            socket.emit("save", { studentname: "Justin Sim", statename: "aState", data: "Goodbye World" });
+        }
+    };
+
+    loadButton.onclick = function () {
+        console.log("load");
+        text.innerHTML = "Loaded."
+        socket.emit("load", { studentname: "Justin Sim", statename: "aState" });
+    };
+
+};
 
 window.requestAnimFrame = (function () {
     return window.requestAnimationFrame ||
@@ -28,6 +69,10 @@ Timer.prototype.tick = function () {
     return gameDelta;
 }
 
+Timer.prototype.saveState = function () {
+    return { gameTime: this.gameTime, wallLastTimestamp: this.wallLastTimestamp };
+}
+
 function GameEngine() {
     this.entities = [];
     this.showOutlines = false;
@@ -37,6 +82,17 @@ function GameEngine() {
     this.wheel = null;
     this.surfaceWidth = null;
     this.surfaceHeight = null;
+}
+
+GameEngine.prototype.reinitialize = function (ctx, timeInfo) {
+    this.ctx = ctx;
+    this.surfaceWidth = this.ctx.canvas.width;
+    this.surfaceHeight = this.ctx.canvas.height;
+    this.startInput();
+    this.timer = new Timer();
+    this.timer.gameTime = timeInfo.gameTime;
+    this.timer.wallLastTimestamp = timeInfo.wallLastTimestamp;
+    console.log('game initialized');
 }
 
 GameEngine.prototype.init = function (ctx) {
@@ -94,8 +150,76 @@ GameEngine.prototype.startInput = function () {
     console.log('Input started');
 }
 
+GameEngine.prototype.saveState = function () {
+    var entitiesCount = this.entities.length;
+    var entitiesCopy = [];
+    debugger;
+    for (var i = 0; i < entitiesCount; i++) {
+        var entity = this.entities[i];
+        var data = entity.saveState();
+        entitiesCopy.push(data);
+
+    }
+    return entitiesCopy;
+}
+
+GameEngine.prototype.loadState = function (data) {
+    console.log("starting up da sheild");
+    var canvas = document.getElementById('gameWorld');
+    var ctx = canvas.getContext('2d');
+    
+    var entitiesCount = data.entities.length;
+    var i;
+    var entity;
+    var commanderIndex;
+    for (i = 0; i < entitiesCount; i++) {
+        entity = data.entities[i];
+        if (entity.name === "Commander") {
+            commanderIndex = i;
+            var commander = new Commander(this);
+            commander.loadState(entity);
+            gameEngine.addEntity(commander);
+        } else if (entity.name === "Soldier") {
+            var soldier = new Soldier(this);
+            soldier.loadState(entity);
+            gameEngine.addEntity(soldier);
+        } else if (entity.name === "Squad") {
+            var squad = new Squad(this, entity.x, entity.y);
+            squad.loadState(entity);
+            gameEngine.addEntity(squad);
+        } else if (entity.name === "EnemySoldier") {
+            var enemySoldier = new Enemy(this);
+            enemySoldier.loadState(entity);
+            this.addEntity(enemySoldier);
+        } else if (entity.name === "Bullet") {
+            var bullet = new Bullet(this, entity.effectiveRange);
+            bullet.loadState(entity);
+            this.addEntity(bullet);
+        } else if (entity.name === "ArtilleryRound") {
+            var shot = new ArtilleryRound(this, ASSET_MANAGER.getAsset("./img/explosion.png"));
+            shot.loadState(entity);
+            this.addEntity(shot);
+        } 
+        
+    }
+
+    for (i = 0; i < entitiesCount; i++) {
+
+        entity = gameEngine.entities[i];
+        if (entity.name === "Squad") {
+            gameEngine.entities[commanderIndex].squads.push(entity);
+        }
+
+    }
+
+    this.reinitialize(ctx, data.timer);
+    this.clockTick = data.clockTick;
+    this.start();
+
+}
+
 GameEngine.prototype.addEntity = function (entity) {
-    console.log('added entity');
+    // console.log('added entity');
     this.entities.push(entity);
 }
 

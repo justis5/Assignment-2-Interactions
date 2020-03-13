@@ -13,6 +13,15 @@ function MyAnimation(spriteSheet, startX, startY, frameWidth, frameHeight, frame
     this.reverse = reverse;
 }
 
+MyAnimation.prototype.saveState = function () {
+    return { totalTime: this.totalTime, elapsedTime: this.elapsedTime };
+}
+
+MyAnimation.prototype.loadState = function (data) {
+    this.totalTime = data.totalTime;
+    this.elapsedTime = data.elapsedTime;
+}
+
 MyAnimation.prototype.drawFrame = function (tick, ctx, x, y, scaleBy) {
     var scaleBy = scaleBy || 1;
     this.elapsedTime += tick;
@@ -74,6 +83,17 @@ function ArtilleryRound(game, spritesheet) {
 
 ArtilleryRound.prototype = new Entity();
 ArtilleryRound.prototype.constructor = ArtilleryRound;
+
+ArtilleryRound.prototype.saveState = function () {
+    return { name: this.name, x: this.x, y: this.y, animation: this.animation.saveState()};
+
+}
+
+ArtilleryRound.prototype.loadState = function (data) {
+    this.x = data.x;
+    this.y = data.y;
+    this.animation.loadState(data.animation);
+}
 
 ArtilleryRound.prototype.update = function () {
     if (this.animation.currentFrame() === 13) {

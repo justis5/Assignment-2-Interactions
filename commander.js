@@ -1,30 +1,21 @@
 // JavaScript source code
 function Commander(game) {
     this.radius = 10;
-    this.kills = 0;
     this.name = "Commander";
     this.type = "Ally";
     this.color = "Green";
+    this.artilleryUsed = false;
     this.startOffensive = true;
-    this.cooldown = 0;
     this.squads = [];
-    this.direction = { x: randomInt(1600) - 800, y: randomInt(1600) - 800 };
     this.front = true;
-    Entity.call(this, game, this.radius + Math.random() * (800 - this.radius * 2), 780 - (this.radius + Math.random() * (50 - this.radius * 2)));
-
-    this.velocity = { x: 0, y: 0 };
+    this.x = this.radius + Math.random() * (800 - this.radius * 2);
+    this.y = 780 - (this.radius + Math.random() * (50 - this.radius * 2));
+    Entity.call(this, game, this.x, this.y);
 };
+
 
 Commander.prototype = new Entity();
 Commander.prototype.constructor = Commander;
-
-Commander.prototype.selectAction = function () {
-
-    var action = { direction: { x: this.direction.x, y: this.direction.y }, throwRock: false, target: null };
-    var closest = 1000;
-    var target = null;
-    return action;
-};
 
 Commander.prototype.collide = function (other) {
     return distance(this, other) < this.radius + other.radius;
@@ -45,6 +36,26 @@ Commander.prototype.collideTop = function () {
 Commander.prototype.collideBottom = function () {
     return (this.y + this.radius) > 800;
 };
+
+Commander.prototype.saveState = function () {
+    /*
+    var squadsClone = [];
+    this.squads.forEach(squad => {
+        var data = squad.saveState();
+        squadsClone.push(data);
+    })
+    */
+    return { name: this.name, x: this.x, y: this.y, startOffensive: this.startOffensive, artilleryUsed: this.artilleryUsed, front: this.front};
+}
+
+Commander.prototype.loadState = function (data) {
+    this.x = data.x;
+    this.y = data.y;
+    this.startOffensive = data.startOffensive;
+    this.artilleryUsed = data.artilleryUsed;
+    this.front = data.front;
+}
+
 
 Commander.prototype.update = function () {
     Entity.prototype.update.call(this);
@@ -116,8 +127,11 @@ Commander.prototype.update = function () {
 
     }
 
+
+    debugger;
     if (readyToAdvance) {
-        if (this.startOffensive) {
+        if (this.squads.length > 0 && !this.artilleryUsed) {
+            this.artilleryUsed = true;
             artilleryStrike(this.game);
             this.startOffensive = false;
         }
